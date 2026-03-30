@@ -15,9 +15,6 @@
       --muted:#777;
     }
 
-    font{
-        font-family: monospace;
-    }
     body {
       margin:0;
       background:var(--bg);
@@ -201,7 +198,13 @@ async function loadAnalysis() {
   const history = data.history;
   const prediction = data.prediction;
 
-  document.getElementById("prediction").innerText = prediction;
+  const el = document.getElementById("prediction");
+
+if (prediction === null || prediction === undefined) {
+  el.innerText = "N/A";
+} else {
+  el.innerText = prediction;
+}
 
   const labels = history.map((_, i) => `D${i+1}`);
   const fullData = [...history, prediction];

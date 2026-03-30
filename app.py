@@ -15,7 +15,7 @@ def get_rates(base="USD"):
     return rates
 
 # ── Get historical rates ──
-def get_historical(base="USD", target="THB", days=7):
+def get_historical(base="USD", target="THB", days=28):
     end = datetime.today()
     start = end - timedelta(days=days)
 
@@ -26,14 +26,36 @@ def get_historical(base="USD", target="THB", days=7):
     rates = [v[target] for k, v in sorted(data.items())]
     return rates
 
+# ── Weighted Moving Average ──
+def weighted_ma(rates):
+    n = len(rates)
+    weights = list(range(1, n+1))  # [1,2,3,...]
+
+    weighted_sum = sum(r * w for r, w in zip(rates, weights))
+    total_weight = sum(weights)
+
+    return weighted_sum / total_weight
+
 # ── Prediction logic ──
-def predict_rate(rates, alpha=0.5):
-    if len(rates) < 2:
+def predict_rate(rates, alpha=0.3):
+    n = len(rates)
+
+    # not enough data
+    if n < 3:
         return None
 
-    ma = sum(rates) / len(rates)
+    # ── Weighted Moving Average ──
+    weights = list(range(1, n + 1))  # [1,2,3,...,n]
+    weighted_sum = sum(r * w for r, w in zip(rates, weights))
+    total_weight = sum(weights)
+
+    wma = weighted_sum / total_weight
+
+    # ── Momentum (recent change) ──
     momentum = rates[-1] - rates[-2]
-    prediction = ma + (momentum * alpha)
+
+    # ── Final Prediction ──
+    prediction = wma + (alpha * momentum)
 
     return round(prediction, 4)
 
