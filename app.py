@@ -15,7 +15,7 @@ def get_rates(base="USD"):
     return rates
 
 # ── Get historical rates ──
-def get_historical(base="USD", target="THB", days=28):
+def get_historical(base="USD", target="THB", days=30):
     end = datetime.today()
     start = end - timedelta(days=days)
 
@@ -25,6 +25,21 @@ def get_historical(base="USD", target="THB", days=28):
 
     rates = [v[target] for k, v in sorted(data.items())]
     return rates
+
+# ── Backtesting logic ──
+def backtest_predictions(rates, window=30):
+    preds = []
+    actuals = []
+
+    for i in range(window, len(rates)):
+        past = rates[i-window:i]
+        pred = predict_rate(past)
+
+        if pred:
+            preds.append(pred)
+            actuals.append(rates[i])
+
+    return preds, actuals
 
 # ── Weighted Moving Average ──
 def weighted_ma(rates):
@@ -88,13 +103,17 @@ def generate_insights(rates):
     else:
         vol_text = "High volatility"
 
-    return f"{trend_text} · {vol_text}"
+    return f"{vol_text}"
 
 # ── Volatility score ──
 def volatility_score(rates):
     avg = sum(rates) / len(rates)
     variance = sum((r - avg) ** 2 for r in rates) / len(rates)
     return round(variance, 4)
+
+# ── Current rate helper ──
+def current_rate(rates):
+    return rates[-1] if rates else None
 
 # ── Routes ──
 @app.route("/api/rates")
@@ -113,9 +132,10 @@ def predict():
         base = request.args.get("from", "USD")
         target = request.args.get("to", "THB")
 
-        rates = get_historical(base, target, 30)
+        rates = get_historical(base, target, 90)
 
         prediction = predict_rate(rates)
+        preds, actuals = backtest_predictions(rates, 30)
         current = rates[-1]
 
         decision = decision_score(current, prediction) if prediction else None
@@ -125,10 +145,14 @@ def predict():
         return jsonify({
             "history": rates,
             "prediction": prediction,
+            "currentRate": round(current, 4),
             "decision": decision,
             "insights": insights,
-            "volatility": volatility
-        })
+            "volatility": volatility,
+            "backtest_pred": preds,
+            "backtest_actual": actuals
+        }
+        )
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -13,7 +13,7 @@
       --accent: #c8f135;
       --accent2: #f135c8;
       --text: #fff;
-      --muted: #666;
+      --muted: #cccccc;
       --danger: #ff4444;
       --safe: #44ff88;
     }
@@ -252,6 +252,13 @@
       color: var(--muted);
       margin-bottom: 10px;
     }
+  
+    .stat-tag-accent {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--accent2);
+      margin-bottom: 10px;
+    }
 
     .stat-value {
       font-size: 28px;
@@ -261,10 +268,41 @@
       transition: all 0.4s;
     }
 
+    .stat-value-accent {      
+      font-size: 28px;
+      font-family: "nexa"; src: url('./fonts/Nexa-Heavy.ttf') format('truetype');
+      font-weight: 800;
+      letter-spacing: -1px;
+      transition: all 0.4s;
+      color: var(--accent2);
+    }
+
     .stat-sub {
       font-size: 11px;
       color: var(--muted);
       margin-top: 4px;
+    }
+
+    .stat-sub-accent {
+      font-size: 11px;
+      color: var(--accent2);
+      margin-top: 4px;
+    }
+
+    .stat-value-insight {
+      font-size: 12px;
+      font-family: "Space Mono";
+      font-weight: 400;
+      letter-spacing: 0px;
+      transition: all 0.4s;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .cell-divider {
+      height: 1px;
+      background: #222;
+      margin: 12px 0;
     }
 
     .decision-BUY  { color: var(--safe); }
@@ -273,8 +311,7 @@
 
     /* ── CHART AREA ── */
     .chart-area {
-      flex: 1;
-      padding: 24px;
+      padding: 18px 24px;
       position: relative;
     }
 
@@ -301,33 +338,51 @@
 
     .chart-wrap {
       position: relative;
-      height: 260px;
+      height: 220px;
+      min-height: 200px;
     }
 
-    /* ── INSIGHTS BAR ── */
-    .insights-bar {
+    #chart, #backtestChart {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* ── RATE INFO BAR ── */
+    .rate-info-bar {
       border-top: 2px solid var(--border);
       padding: 14px 24px;
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 32px;
       background: #0c0c0c;
     }
 
-    .insight-pill {
-      font-size: 11px;
-      letter-spacing: 1px;
-      color: var(--muted);
+    .rate-info-block {
       display: flex;
-      align-items: center;
-      gap: 6px;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .insight-pill span.dot {
-      width: 6px; height: 6px;
-      background: var(--accent);
-      border-radius: 50%;
-      flex-shrink: 0;
+    .rate-info-label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted);
+    }
+
+    .rate-info-value {
+      font-size: 18px;
+      font-family: "nexa";
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--accent);
+    }
+
+    .rate-info-value-accent {
+      font-size: 18px;
+      font-family: "nexa";
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--accent2);
     }
 
     /* ── LOADING ── */
@@ -452,11 +507,6 @@
     <!-- Stats row -->
     <div class="stats-row">
       <div class="stat-cell">
-        <div class="stat-tag">NEXT RATE</div>
-        <div class="stat-value" id="prediction">—</div>
-        <div class="stat-sub">WMA prediction</div>
-      </div>
-      <div class="stat-cell">
         <div class="stat-tag">SIGNAL</div>
         <div class="stat-value" id="decision">—</div>
         <div class="stat-sub">smart decision</div>
@@ -465,6 +515,11 @@
         <div class="stat-tag">RISK SCORE</div>
         <div class="stat-value" id="volatility">—</div>
         <div class="stat-sub">variance index</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-tag">INSIGHTS</div>
+        <div class="stat-value" id="insights">—</div>
+        <div class="stat-sub">market analysis</div>
       </div>
     </div>
 
@@ -479,11 +534,24 @@
       </div>
     </div>
 
-    <!-- Insights bar -->
-    <div class="insights-bar">
-      <div class="insight-pill">
-        <span class="dot"></span>
-        <span id="insights">Loading analysis...</span>
+    <!-- Bottom Stats Row -->
+    <div class="stats-row" style="grid-template-columns: 2fr 1fr 1fr; border-top: 2px solid var(--border); border-bottom: 2px solid var(--border);">
+      <div class="stat-cell">
+        <div class="stat-tag" style="font-size:14px;">CURRENT RATE</div>
+        <div class="stat-value" id="currentRateInfo" style="font-size:34px;">—</div>
+        
+      </div>
+      <div class="stat-cell">
+        <div class="stat-tag">PREDICTED NEXT RATE</div>
+        <div class="stat-value" id="predictionInfo">—</div>
+        <div id="rateDiff" class="stat-sub">—</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-tag">PREDICT ACCURACY</div>
+        <div class="stat-value" id="accuracy" style="font-size:22px; color: var(--safe);">—</div>
+        <div style="margin-top:8px; border:2px solid #fff; height:10px; width:100%;">
+          <div id="accuracyBar" style="height:100%; background:var(--accent); width:0%; transition:width 0.6s;"></div>
+        </div>
       </div>
     </div>
 
@@ -493,6 +561,7 @@
 <script>
 const API = "http://127.0.0.1:5000";
 let chart;
+let currentExchangeRate = null;
 
 // ── Swap currencies ──
 function swapCurrencies() {
@@ -550,8 +619,10 @@ async function convert() {
       ? `${parseFloat(data.result).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} ${to}`
       : "Error";
 
+    currentExchangeRate = data.result / amount;
+
     document.getElementById("rateInfo").innerText =
-      `1 ${from} = ${(data.result / amount).toFixed(4)} ${to}`;
+      `1 ${from} = ${currentExchangeRate.toFixed(4)} ${to}`;
 
     document.getElementById("chartPair").innerText = `${from} / ${to}`;
 
@@ -567,39 +638,71 @@ async function loadAnalysis(from, to) {
   from = from || document.getElementById("from").value;
   to   = to   || document.getElementById("to").value;
 
-  const predEl  = document.getElementById("prediction");
+  const predEl  = document.getElementById("predictionInfo");
+  const rateEl  = document.getElementById("currentRateInfo");
   const decEl   = document.getElementById("decision");
   const volEl   = document.getElementById("volatility");
+  const insEl   = document.getElementById("insights");
 
   predEl.classList.add("skeleton");
+  rateEl.classList.add("skeleton");
   decEl.classList.add("skeleton");
   volEl.classList.add("skeleton");
+  insEl.classList.add("skeleton");
 
   try {
     const res  = await fetch(`${API}/api/predict?from=${from}&to=${to}`);
     const data = await res.json();
 
     predEl.classList.remove("skeleton");
+    rateEl.classList.remove("skeleton");
     decEl.classList.remove("skeleton");
     volEl.classList.remove("skeleton");
+    insEl.classList.remove("skeleton");
 
-    const history    = data.history;
-    const prediction = data.prediction;
+    const fullHistory = data.history;
+    const prediction  = data.prediction;
+    const preds       = data.backtest_pred   || [];
+    const actuals     = data.backtest_actual || [];
 
     predEl.innerText = prediction ?? "N/A";
+    rateEl.innerText = data.currentRate ? data.currentRate.toFixed(4) : (currentExchangeRate ? currentExchangeRate.toFixed(4) : "N/A");
 
-    // Decision with class
-    decEl.innerText   = data.decision ?? "—";
-    decEl.className   = "stat-value decision-" + (data.decision || "HOLD");
+    // ── Rate diff + % change ──
+    if (data.currentRate && data.prediction) {
+      const diff  = data.prediction - data.currentRate;
+      const pct   = ((diff / data.currentRate) * 100).toFixed(2);
+      const sign  = diff >= 0 ? "+" : "";
+      const color = diff >= 0 ? "var(--safe)" : "var(--danger)";
+      const diffEl = document.getElementById("rateDiff");
+      if (diffEl) { diffEl.innerText = `${sign}${diff.toFixed(4)}  (${sign}${pct}%)`; diffEl.style.color = color; }
+    }
 
+    decEl.innerText = data.decision ?? "—";
+    decEl.className = "stat-value decision-" + (data.decision || "HOLD");
     volEl.innerText = data.volatility ?? "—";
+    insEl.innerText = data.insights ?? "";
 
-    document.getElementById("insights").innerText = data.insights ?? "";
+    // ── Accuracy + progress bar ──
+    const accEl = document.getElementById("accuracy");
+    const barEl = document.getElementById("accuracyBar");
+    if (preds.length && actuals.length) {
+      const errors   = preds.map((p, i) => Math.abs(p - actuals[i]) / actuals[i]);
+      const mae      = errors.reduce((a, b) => a + b, 0) / errors.length;
+      const accuracy = ((1 - mae) * 100).toFixed(1);
+      if (accEl) accEl.innerText = accuracy + "%";
+      if (barEl) barEl.style.width = accuracy + "%";
+    } else {
+      if (accEl) accEl.innerText = "N/A";
+    }
 
-    // ── Chart ──
-    const labels = history.map((_, i) => `D${i+1}`);
-    const predictData = [...Array(history.length - 1).fill(null), history[history.length - 1], prediction];
+    // ── Chart: last 30 days display, backtest aligned ──
+    const display       = fullHistory.slice(-30);
+    const labels        = display.map((_, i) => `D${i+1}`);
     const predictLabels = [...labels, "TMR"];
+    const forecastData  = [...Array(display.length - 1).fill(null), display[display.length - 1], prediction];
+    const backtestPadded = [...Array(fullHistory.length - preds.length).fill(null), ...preds];
+    const backtestData  = backtestPadded.slice(-30);
 
     if (chart) chart.destroy();
 
@@ -610,7 +713,7 @@ async function loadAnalysis(from, to) {
         datasets: [
           {
             label: "Actual",
-            data: history,
+            data: display,
             borderColor: "#c8f135",
             backgroundColor: "rgba(200,241,53,0.06)",
             borderWidth: 2,
@@ -620,13 +723,24 @@ async function loadAnalysis(from, to) {
             fill: true,
           },
           {
-            label: "Forecast",
-            data: predictData,
+            label: "Backtest",
+            data: backtestData,
             borderColor: "#f135c8",
-            backgroundColor: "transparent",
+            borderDash: [4, 4],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.3,
+            fill: false,
+          },
+          {
+            label: "Forecast",
+            data: forecastData,
+            borderColor: "#ffaa00",
+            borderDash: [6, 3],
             borderWidth: 2,
-            borderDash: [5, 5],
-            pointRadius: [0,0,0,0,5],
+            pointRadius: [...Array(display.length - 1).fill(0), 3, 6],
+            pointBackgroundColor: "#ffaa00",
             tension: 0.3,
             fill: false,
           }
@@ -671,12 +785,13 @@ async function loadAnalysis(from, to) {
 
   } catch (e) {
     predEl.classList.remove("skeleton");
+    rateEl.classList.remove("skeleton");
     decEl.classList.remove("skeleton");
     volEl.classList.remove("skeleton");
+    insEl.classList.remove("skeleton");
     console.error("Analysis error:", e);
   }
 }
-
 window.onload = loadCurrencies;
 </script>
 </body>
